@@ -34,7 +34,7 @@ def P(s=""):
 P("# M5. MCDA 우선순위 · 행정동 산출 · 신규/완화 구역")
 P(f"생성: {__import__('datetime').datetime.now():%Y-%m-%d %H:%M}\n")
 
-df = pd.read_parquet(MOD / "features_v2.parquet")
+df = pd.read_parquet(MOD / "features_v4.parquet")   # M9 최종 피처셋
 hz = pd.read_parquet(MOD / "hazard_score.parquet")[["grid_id", "hazard_raw", "hazard_pct"]]
 df = df.merge(hz, on="grid_id", how="left")
 GROUPS = json.load(open(MOD / "feature_groups.json", encoding="utf-8"))
@@ -50,7 +50,9 @@ df["exposure_pct"] = df[EXPO].mean(axis=1).rank(pct=True)
 # 대응취약: 펌프 거리 멀수록/개수 적을수록 취약 (M1에서 방향 정렬 완료)
 df["capacity_pct"] = df[CAP].mean(axis=1).rank(pct=True)
 # 물리 MCDA(비학습) — 강서 보정 및 비교용
-HAZ = [c + "_s" for c in GROUPS["HAZARD"]] + ["flow_acc_log_s", "twi_s", "dist_stream_m_s"]
+HAZ = ([c + "_s" for c in GROUPS["HAZARD"]] + ["flow_acc_log_s", "twi_s", "dist_stream_m_s"]
+       + [c + "_s" for c in ["imperv_ratio","agri_ratio","paddy_ratio","forest_ratio","water_ratio","road_ratio"]]
+       + ["mh_no_dredge_ratio_s"])   # M9 최종 16지표
 df["hazard_mcda_pct"] = df[HAZ].mean(axis=1).rank(pct=True)
 P(f"- Hazard(ML)   : XGBoost 침수감수성 백분위")
 P(f"- Hazard(MCDA) : 물리 9지표 동일가중 평균 백분위 (강서 보정·비교용)")
