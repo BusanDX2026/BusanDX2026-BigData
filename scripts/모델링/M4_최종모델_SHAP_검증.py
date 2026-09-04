@@ -10,7 +10,8 @@ M4. 최종 모델 학습 · SHAP 해석 · 3종 독립 검증
   [V3] 확률 보정(calibration): MCDA에서 노출과 곱할 것이므로 점수가 확률로서 신뢰되는지 확인.
 
 - 입력: 04_모델/features_v2.parquet, M3_최종설정.json
-- 출력: 04_모델/hazard_score.parquet, M4_shap_importance.csv, _리포트/M4_최종모델_검증.md
+- 출력: 04_모델/hazard_score_m4_9feat.parquet, M4_shap_importance.csv, _리포트/M4_최종모델_검증.md
+  ※ 최종 위험도(hazard_score.parquet)는 M9 가 생성한다. 이 스크립트는 그 파일을 건드리지 않는다.
 """
 import sys, io, json, warnings
 from pathlib import Path
@@ -153,9 +154,12 @@ P(f"- scale_pos_weight={SPW:.0f} 로 불균형 보정했기 때문에 **출력�
 P("  → MCDA에서는 원확률이 아니라 **순위 백분위(percentile rank)** 로 변환해 결합한다. (M5)")
 
 df["hazard_pct"] = df.hazard_raw.rank(pct=True)
+# 2026-09-04(이슈 #28): 하류가 읽는 hazard_score.parquet 는 M9(최종 16피처) 산출물이다.
+#   M4 는 features_v2(9피처) 기반 중간 검증이므로 같은 파일에 쓰면 M9 결과를 조용히 덮어쓴다.
 df[["grid_id", "sgg_cd", "sgg_nm", "adm_cd", "adm_nm", "hazard_raw", "hazard_oof", "hazard_pct"]] \
-    .to_parquet(MOD / "hazard_score.parquet", index=False)
-P(f"\n- 산출: hazard_score.parquet (격자별 침수감수성), M4_shap_importance.csv")
+    .to_parquet(MOD / "hazard_score_m4_9feat.parquet", index=False)
+P("\n- 산출: hazard_score_m4_9feat.parquet (9피처 중간 검증용), M4_shap_importance.csv")
+P("  ※ 하류(M5·MS1·MS3)가 읽는 최종 위험도는 M9 의 hazard_score.parquet 이다. 이 스크립트는 그 파일을 덮어쓰지 않는다.")
 
 (REP / "M4_최종모델_검증.md").write_text("\n".join(log), encoding="utf-8")
 print(f"\n==> 리포트: {REP/'M4_최종모델_검증.md'}", flush=True)
