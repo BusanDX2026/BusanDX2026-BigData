@@ -57,51 +57,16 @@ valid = np.isfinite(dem)
 P(f"- DEM {H}x{W}, 유효 {valid.sum():,}셀, 픽셀 {px:.0f}m")
 
 # 미세 함몰 제거: 8이웃 최소값보다 낮으면 살짝 올림 (완전한 sink fill 대신 경량 처리)
-z = np.where(valid, dem, np.inf)
-NB = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
-DIST = np.array([np.hypot(dr,dc)*px for dr,dc in NB])
-
-# D8: 각 셀의 최급경사 하류 이웃
-idx = np.arange(H*W).reshape(H, W)
-best_drop = np.full((H, W), -np.inf); best_nb = np.full((H, W), -1, dtype=np.int64)
-for k,(dr,dc) in enumerate(NB):
-    zs = np.full((H, W), np.inf)
-    r0,r1 = max(0,dr), H+min(0,dr); c0,c1 = max(0,dc), W+min(0,dc)
-    zs[r0:r1, c0:c1] = z[r0-dr:r1-dr, c0-dc:c1-dc]
-    drop = (z - zs) / DIST[k]
-    ns = np.full((H, W), -1, dtype=np.int64)
-    ns[r0:r1, c0:c1] = idx[r0-dr:r1-dr, c0-dc:c1-dc]
-    upd = (drop > best_drop) & np.isfinite(zs) & valid
-    best_drop[upd] = drop[upd]; best_nb[upd] = ns[upd]
-P(f"- D8 방향 결정 완료 ({time.perf_counter()-t0:.1f}s). 하류 없는 셀(내부함몰·해안) {int((best_nb<0)&valid).sum() if False else int(((best_nb<0)&valid).sum()):,}")
-
-# 표고 내림차순으로 누적 (상류→하류)
-flat_z = np.where(valid, dem, -np.inf).ravel()
-order = np.argsort(-flat_z, kind="stable")
-order = order[np.isfinite(flat_z[order])]
-acc = np.ones(H*W)
-nb_flat = best_nb.ravel()
-for i in order:
-    j = nb_flat[i]
-    if j >= 0:
-        acc[j] += acc[i]
-flow_acc = acc.reshape(H, W)
-flow_acc[~valid] = np.nan
-P(f"- 흐름누적 완료 ({time.perf_counter()-t0:.1f}s). max {np.nanmax(flow_acc):,.0f}셀 "
-  f"(= {np.nanmax(flow_acc)*px*px/1e6:.1f} km² 집수)")
-
-# TWI = ln( (a) / tan(beta) ), a = 단위폭당 집수면적
-gy, gx = np.gradient(np.where(valid, dem, np.nan), px, px)
-slope_rad = np.arctan(np.sqrt(gx**2 + gy**2))
-tan_b = np.maximum(np.tan(slope_rad), 0.001)
-twi = np.log((flow_acc * px) / tan_b)
-# HAND 간이: 흐름누적 상위 0.5% = 수계로 보고, 그 수계 최저표고 대비 상대고도
-thr = np.nanpercentile(flow_acc, 99.5)
-from scipy.ndimage import distance_transform_edt
-stream = (flow_acc >= thr) & valid
-dist_to_stream = distance_transform_edt(~stream, sampling=px)
-P(f"- 수계 임계 {thr:,.0f}셀(상위0.5%) → 수계 픽셀 {int(stream.sum()):,}, "
-  f"평균 수계거리 {np.nanmean(np.where(valid,dist_to_stream,np.nan)):.0f}m")
+# 2026-09-04 코드리뷰 #1 수정: 기존 인라인 D8은 하강 조건(drop>0)이 없어
+#   5.5%(47,852셀)가 오르막으로 배수됐고 싱크를 42개로 오보했다. 공용 모듈로 교체.
+#   (함몰메움 → drop>0 D8 → 누적 → 수계망 → HAND/TWI/수계거리)
+from _hydro import derive_all
+hyd = derive_all(dem, valid, px, stream_km2=1.0, verbose_fn=P)
+flow_acc = hyd["flow_acc"]
+twi = hyd["twi"]
+dist_to_stream = np.where(valid, hyd["dist_stream"], np.nan)
+P(f"- 수문 파생 완료 ({time.perf_counter()-t0:.1f}s), "
+  f"평균 수계거리 {np.nanmean(dist_to_stream):.0f}m")
 
 # ---- 100m 격자로 리샘플 (S5c와 동일 정렬) ----
 CELL = 100
