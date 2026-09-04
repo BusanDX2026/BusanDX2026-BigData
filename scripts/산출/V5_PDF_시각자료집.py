@@ -63,16 +63,19 @@ FIGS = [
      "'상습지는 더 약한 비에 잠긴다'는 가설이 추정이 아니라 관측으로 확인됐다.",
      "3. 분석결과 · 인사이트"),
     ("F09_강우활성화등급지도.png", "그림 11", "강우 강도별 활성화 등급 지도",
-     "관측 유발강우로 격자를 3등급으로 나눴다. 누적 포함 구조(T1⊂T2⊂T3)라 강우가 커지면 "
-     "구역이 추가만 되며 포착률 역전이 구조적으로 불가능하다.",
+     "[부가 참고] 관측 유발강우로 격자를 3등급으로 나눴다. 누적 포함 구조(T1⊂T2⊂T3)라 강우가 "
+     "커지면 구역이 추가만 되며 포착률 역전이 불가능하다. 다만 회귀 R² 0.242·분리 AUC 0.688 로 "
+     "느슨하므로 격자별 임계값 단정이 아니라 광역 밴드 조언으로만 쓴다.",
      "3. 분석결과 · 시각화 결과"),
     ("F15_강우시나리오_누적포착.png", "그림 12", "강우 강도별 대응구역 확대",
-     "호우경보 문턱(3시간 104mm)에서 133km²로 상습 침수의 50%, 2014급(142mm 초과)까지 "
-     "대비하면 302km²로 전량을 포괄한다. 예보 강우에 맞춰 대응 범위를 단계적으로 넓히는 근거다.",
+     "[부가 참고] 호우경보 문턱(3시간 104mm)에서 133km²로 상습 침수의 50%, 2014급(142mm 초과)까지 "
+     "대비하면 302km²로 전량을 포괄한다. 강우 규모별로 점검 범위를 어디까지 넓힐지에 대한 조언이며, "
+     "실시간 발령 기준이 아니다.",
      "3. 분석결과 · 시각화 결과 / 4. 활용방안"),
     ("F04_선제대응_우선순위지도.png", "그림 13", "선제대응 우선순위 지도 (최종 산출)",
      "물리 위험도 50% + 인구·건물 노출 35% + 배수 대응역량 결핍 15%를 결합한 최종 산출물. "
-     "상위 10%(81km², 인구 127만명)를 지정하면 침수위험 거주인구의 90.4%를 포괄한다.",
+     "상위 10%(81km², 인구 127만명)를 지정하면 침수위험 거주인구의 90.4%를 포괄한다. "
+     "전수 점검이 불가능할 때 '어디부터 볼지'를 정하는 권고이며, 침수 발생을 예측하지 않는다.",
      "1. 분석개요 · 분석결과 / 3. 분석결과 · 시각화"),
     ("F12_위험노출인구_포착.png", "그림 14", "왜 노출을 결합해야 하나",
      "침수기록이 저인구 지역에 쏠려 있어(기장군 침수격자당 197명 vs 남구 1,843명) 격자 수만 "
@@ -108,10 +111,11 @@ with PdfPages(PDF) as pdf:
     fig.add_artist(plt.Line2D([.12, .88], [.855, .855], color=INK, lw=2.2))
     fig.text(.12, .76, "부산시 호우 시", fontsize=27, fontweight="bold", color=INK)
     fig.text(.12, .705, "선제대응구역 선정", fontsize=27, fontweight="bold", color=INK)
-    fig.text(.12, .655, "100m 격자 81,224개 · 공공데이터 16종 · 자치구 공간 교차검증",
-             fontsize=11, color=MUTE)
+    fig.text(.12, .655, "한정 자원의 점검 우선순위 권고", fontsize=13, color=TEAL, fontweight="bold")
+    fig.text(.12, .625, "100m 격자 81,224개 · 공공데이터 16종 · 자치구 공간 교차검증",
+             fontsize=10.5, color=MUTE)
     # 핵심 지표
-    ys = .55
+    ys = .525
     for lab, val, sub in [("침수 감수성 모델", "PR-AUC 0.3059", "무작위 대비 8.6배"),
                           ("선제대응 상위 10%", "위험인구 90.4%", "81 km² · 인구 127만명"),
                           ("관측 활성화 강우", "3시간 102 mm", "상습 침수지 기준")]:
@@ -128,6 +132,69 @@ with PdfPages(PDF) as pdf:
     fig.text(.12, .085, "생성 2026-09-04 · scripts/산출/V1~V5", fontsize=8.5, color=MUTE)
     fig.text(.88, .085, "※ 분석 진행 중 — 수치는 변경될 수 있음", fontsize=8.5, color=WARM, ha="right")
     pdf.savefig(fig); plt.close(fig)
+
+    # ── 이 산출물의 위치 ──────────────────────────────────
+    fig = plt.figure(figsize=A4); fig.patch.set_facecolor("white")
+    fig.text(.10, .935, "이 산출물의 위치", fontsize=18, fontweight="bold", color=INK)
+    fig.add_artist(plt.Line2D([.10, .90], [.920, .920], color=INK, lw=1.6))
+
+    fig.add_artist(plt.Rectangle((.10, .805), .80, .085, facecolor="#eaf3f2",
+                                 edgecolor=TEAL, lw=1.4, transform=fig.transFigure))
+    fig.text(.50, .862, "한정 자원의 점검 우선순위 권고", fontsize=15, fontweight="bold",
+             color=TEAL, ha="center")
+    fig.text(.50, .828, "침수 발생을 예측하거나 경보를 발령하는 시스템이 아니다.",
+             fontsize=10.5, color=MUTE, ha="center")
+
+    y = .765
+    fig.text(.10, y, "숫자가 지지하는 범위", fontsize=11.5, fontweight="bold", color=INK); y -= .034
+    for lab, val, can in [
+        ("상위 10% 정밀도", "21.0%", "5곳 중 1곳이 실제 침수이력 → 점검 순서 O / 자동 발령 X"),
+        ("상위 10% 재현율", "59.1%", "어디를 먼저 볼지에 대한 답으로 충분"),
+        ("위험인구 포착", "90.4%", "정책 단위 커버리지 근거"),
+        ("강우 등급(부가)", "AUC 0.688", "격자별 임계 단정 X / 광역 밴드 조언 O")]:
+        fig.text(.115, y, lab, fontsize=9.5, color=MUTE)
+        fig.text(.315, y, val, fontsize=10.5, fontweight="bold", color=TEAL)
+        fig.text(.435, y, can, fontsize=9, color="#31423f")
+        y -= .0285
+    y -= .022
+
+    fig.text(.10, y, "왜 '권고'인가", fontsize=11.5, fontweight="bold", color=INK); y -= .032
+    for t in ["정밀도 21%로 시민 대상 자동 발령을 하면 5건 중 4건이 헛발령이 된다.",
+              "안전문자는 오발령 비용이 특히 크다 — 신뢰가 깨지면 실제 위험 시 대응하지 않는다.",
+              "반면 '이 순서로 점검하라'는 조언으로는 같은 21%가 충분하다.",
+              "무작위 10곳 중 1곳 대비 5곳 중 1곳이므로 같은 예산으로 5배 효율이다."]:
+        fig.text(.125, y, "·", fontsize=10, color=TEAL)
+        fig.text(.145, y, t, fontsize=9.5, color="#31423f")
+        y -= .0255
+    y -= .022
+
+    fig.text(.10, y, "권고 도구로서의 근거", fontsize=11.5, fontweight="bold", color=INK); y -= .032
+    for lab, val in [("현행 행정 재해위험지구 지정 대비", "4.9배  (59.1% vs 12.1%)"),
+                     ("2020 대형호우 홀드아웃", "16.8배 — 처음 보는 호우에도 작동"),
+                     ("검증 깊이", "공간 CV · 위약 대조 · 사건 홀드아웃 · 독립출처 교차검증")]:
+        fig.text(.125, y, lab, fontsize=9.5, color=MUTE)
+        fig.text(.47, y, val, fontsize=9.5, color="#31423f", fontweight="bold")
+        y -= .0265
+    y -= .008
+    fig.text(.125, y, "랜덤 K-fold 가 +141% 부풀린 값임을 보이고 정직한 수치를 쓴다.",
+             fontsize=9, color=MUTE, style="italic")
+    y -= .042
+
+    fig.text(.10, y, "활용 범위", fontsize=11.5, fontweight="bold", color=INK); y -= .032
+    for ok, t in [(True, "연간 점검계획 수립 — 호우철 전 배수구·펌프장 점검 순서"),
+                  (True, "예산 배분 근거 — 어느 구역 정비에 먼저 투입할지"),
+                  (True, "재해위험지구 지정 재검토 — 현행 지정과의 차이 52개 행정동"),
+                  (False, "실시간 경보·안전문자 발송 — 권한 부재 + 정밀도 부족으로 채택하지 않음"),
+                  (False, "격자별 침수 시점·수심 예측 — 이 데이터로 불가")]:
+        fig.text(.125, y, "O" if ok else "X", fontsize=10,
+                 color=TEAL if ok else WARM, fontweight="bold")
+        fig.text(.155, y, t, fontsize=9.5, color="#31423f" if ok else MUTE)
+        y -= .0255
+
+    fig.add_artist(plt.Line2D([.10, .90], [.075, .075], color="#d6e3e1", lw=1))
+    fig.text(.10, .052, "상세 근거: 문서/모델링_설계와검증.md 부록 P2", fontsize=8.5, color=MUTE)
+    pdf.savefig(fig); plt.close(fig)
+
 
     # ── 목차 ─────────────────────────────────────────────
     fig = plt.figure(figsize=A4); fig.patch.set_facecolor("white")
