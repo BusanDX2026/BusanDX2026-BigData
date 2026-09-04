@@ -74,18 +74,27 @@ for pct in [0.05, 0.10, 0.20, 0.30]:
     P(f"| {pct:.0%} | {k:,} | **{tp/POS:.1%}** | {tp/k:.1%} | {POS-tp:,} |")
 
 P("\n## 2. 개선 경로 (누적)")
-HIST = [("M2 기본 (물리 6, 기본파라미터)", 0.1730, 0.485),
-        ("＋수문 3 (흐름누적·TWI·수계거리)", 0.1874, None),
-        ("＋공간CV 하이퍼파라미터 튜닝", 0.2017, 0.485),
-        ("＋토지피복 6 (불투수면적 등)", 0.2288, 0.529),
-        ("＋준설미실시 1 (하수도)", average_precision_score(y, oof), y[order[:int(N*.10)]].sum()/POS)]
-P("| 단계 | PR-AUC | Top10% 포착 |")
-P("|---|--:|--:|")
+# 2026-09-04 코드리뷰: 기존엔 과거 PR-AUC가 하드코딩돼 있어 상류(수문 라우팅)를 고친 뒤에도
+#   낡은 수치를 출력했다. 동일 튜닝 파라미터로 누적 절제를 매 실행 시 직접 계산한다.
+PHYS6 = ["elev_min_s", "slope_mean_s", "tpi_s", "lowland3_ratio_s", "fluv_area_ratio_s", "rain_annmax_mm_s"]
+HYD3 = ["flow_acc_log_s", "twi_s", "dist_stream_m_s"]
+LC6 = ["imperv_ratio_s", "agri_ratio_s", "paddy_ratio_s", "forest_ratio_s", "water_ratio_s", "road_ratio_s"]
+MH1 = ["mh_no_dredge_ratio_s"]
+STAGES = [("물리 6 (표고·경사·TPI·저지대·하천범람·강우)", PHYS6),
+          ("＋수문 3 (흐름누적·TWI·수계거리)", PHYS6 + HYD3),
+          ("＋토지피복 6 (불투수면적 등)", PHYS6 + HYD3 + LC6),
+          ("＋준설미실시 1 (하수도)", PHYS6 + HYD3 + LC6 + MH1)]
+P("| 단계 | 피처수 | PR-AUC | Top10% 포착 |")
+P("|---|--:|--:|--:|")
 prev = None
-for nm, ap, t10 in HIST:
-    d = f" ({ap/prev-1:+.1%})" if prev else ""
-    P(f"| {nm} | {ap:.4f}{d} | {f'{t10:.1%}' if t10 else '—'} |")
-    prev = ap
+for nm, feats in STAGES:
+    o_s = oof_of(df[feats].values, y, gkf)
+    ap_s = average_precision_score(y, o_s)
+    j = o_s + np.random.RandomState(RS).rand(len(y)) * max(np.ptp(o_s), 1e-9) * 1e-9
+    t10 = y[np.argpartition(-j, int(N * .10) - 1)[:int(N * .10)]].sum() / POS
+    d = f" ({ap_s/prev-1:+.1%})" if prev else ""
+    P(f"| {nm} | {len(feats)} | {ap_s:.4f}{d} | {t10:.1%} |")
+    prev = ap_s
 P(f"\n- 기준선 대비: MCDA 동일가중 0.0480 → **{average_precision_score(y,oof)/0.0480:.1f}배**, "
   f"행정 재해위험지구 0.0377 → **{average_precision_score(y,oof)/0.0377:.1f}배**")
 

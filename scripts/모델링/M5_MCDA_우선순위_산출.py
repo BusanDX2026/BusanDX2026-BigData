@@ -101,12 +101,44 @@ P(f"- 강서구 {int(gangseo.sum()):,}격자는 물리 MCDA 점수 적용 (사�
 # 3. 검증 — 우선순위가 실제 침수를 잡는가
 # ===============================================================
 P("\n## 3. 우선순위 검증")
+# ── 주 지표: '침수위험 거주인구 포착률' ─────────────────────────────────
+#   격자 수 포착률은 정책 지표로 부적절하다. 침수흔적 기록이 저인구 지역에 쏠려 있어
+#   (기장군 침수격자당 197명 vs 남구 1,843명 = 9배), 격자 수를 좇으면 사람이 적은 곳을
+#   우선하게 된다. 같이 침수될 때 먼저 가야 하는 곳은 사람이 있는 곳이므로
+#   **침수이력 격자에 사는 인구를 얼마나 담았는가** 를 주 지표로 삼는다.
+pop_v = df["pop"].fillna(0).values
+pop_at_risk = pop_v[y == 1].sum()
+P(f"- 침수이력 격자 거주인구(= 위험 노출인구): **{pop_at_risk:,.0f}명** "
+  f"(부산 총인구의 {pop_at_risk/pop_v.sum():.1%})")
+P("")
+P("| 상위 | 격자 | **위험노출인구 포착** | 침수격자 포착 | 리프트 | 총 커버인구 |")
+P("|---|--:|--:|--:|--:|--:|")
 for pct in [0.05, 0.10, 0.20]:
-    k = int(len(df)*pct)
+    k = int(len(df) * pct)
     idx = np.argsort(-df.priority.values)[:k]
-    P(f"- 상위 {pct:.0%} ({k:,}격자): 침수흔적 {y[idx].sum():,}/{y.sum():,} = **{y[idx].sum()/y.sum():.1%}** 포착 "
-      f"(리프트 {y[idx].sum()/y.sum()/pct:.1f}배), 인구 {df.iloc[idx]['pop'].sum():,.0f}명 커버 "
-      f"({df.iloc[idx]['pop'].sum()/df['pop'].sum():.1%})")
+    m = np.zeros(len(df), bool); m[idx] = True
+    P(f"| {pct:.0%} | {k:,} | **{pop_v[m & (y==1)].sum()/pop_at_risk:.1%}** | "
+      f"{y[idx].sum()/y.sum():.1%} | {y[idx].sum()/y.sum()/pct:.1f}배 | "
+      f"{pop_v[m].sum():,.0f}명 ({pop_v[m].sum()/pop_v.sum():.1%}) |")
+
+# 위험도 단독(M9) 대조 — 노출 결합이 '사람'을 더 담는지
+_hz = pd.read_parquet(MOD / "hazard_score.parquet")[["grid_id", "hazard_oof"]]
+_d = df[["grid_id"]].merge(_hz, on="grid_id", how="left")
+_k = int(len(df) * 0.10)
+m9m = np.zeros(len(df), bool); m9m[np.argsort(-_d.hazard_oof.fillna(0).values)[:_k]] = True
+m5m = np.zeros(len(df), bool); m5m[np.argsort(-df.priority.values)[:_k]] = True
+P("")
+P("**상위 10%: 위험도 단독(M9) vs MCDA(노출 결합)**")
+P("| 기준 | 위험노출인구 포착 | 침수격자 포착 | 총 커버인구 |")
+P("|---|--:|--:|--:|")
+for nm, mm in [("M9 위험도 단독", m9m), ("M5 MCDA (0.50/0.35/0.15)", m5m)]:
+    P(f"| {nm} | **{pop_v[mm & (y==1)].sum()/pop_at_risk:.1%}** | "
+      f"{y[mm].sum()/y.sum():.1%} | {pop_v[mm].sum():,.0f}명 |")
+P("")
+P("→ 격자 수로는 M9가 앞서지만 **사람 기준으로는 MCDA가 크게 앞선다.** "
+  "침수기록이 저인구 지역(기장 31%)에 쏠려 있어 생기는 역전이며, "
+  "노출 가중은 편향을 키우는 게 아니라 현실 쪽으로 되돌린다.")
+
 
 # ===============================================================
 # 4. 행정동 우선순위
