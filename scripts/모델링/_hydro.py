@@ -173,3 +173,39 @@ def derive_all(dem, valid, px, stream_km2=1.0, verbose_fn=None):
     d2s = np.where(valid, d2s, np.nan)
     return dict(filled=zf, best_nb=best_nb, flow_acc=facc, stream=stream,
                 hand=hand, twi=twi, dist_stream=d2s)
+
+
+def flowpath_to_stream(z, best_nb, stream, valid, px):
+    """수계까지 **D8 흐름경로를 따라간 거리**(m). 미도달 셀은 NaN.
+
+    직선거리(dist_stream)와 다른 점: 물은 직선으로 가지 않는다. 능선 하나를
+    사이에 둔 두 격자는 직선거리가 같아도 실제 배수 경로 길이는 크게 다르다.
+
+    ※ 방향 주의 — 설계 당시 "경로가 길수록 배수 지연 → 위험↑"으로 가정했으나
+      부산 데이터는 정반대다(침수 격자 0.179 vs 비침수 0.430, M11).
+      **경로가 짧을수록(수계 근접) 침수한다.** 쓸 일이 있으면 반전해서 정규화할 것.
+    ※ 채택 여부 — M11b 에서 dist_stream_m 과 r=+0.583 으로 중복이고 성능도
+      −2.6% 라 **모델에 넣지 않았다**. 어떤 프로덕션 스크립트도 이 함수를
+      호출하지 않는다 (부록 Q).
+
+    hand_from_stream 과 동일하게 메움표고 오름차순으로 처리하면
+    하류가 항상 먼저 확정되므로 단일 순회로 끝난다.
+    """
+    H, W = z.shape
+    e_fill = np.where(valid, z, np.nan).ravel()
+    nb = best_nb.ravel()
+    st = stream.ravel()
+
+    L = np.full(H * W, np.nan)
+    asc = np.argsort(e_fill, kind="stable")
+    asc = asc[np.isfinite(e_fill[asc])]
+    for i in asc:
+        if st[i]:
+            L[i] = 0.0
+        else:
+            j = nb[i]
+            if j >= 0:
+                dr = i // W - j // W
+                dc = i % W - j % W
+                L[i] = L[j] + np.hypot(dr, dc) * px   # 미해결이면 NaN 전파
+    return L.reshape(H, W)
