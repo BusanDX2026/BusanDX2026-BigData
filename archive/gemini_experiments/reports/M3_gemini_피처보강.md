@@ -30,4 +30,4 @@
 - Top 20% 포착률: 67.4% → **70.5%** (+3.1%p)
 - Top 25% 포착률: 74.9% → **76.6%** (+1.7%p)
 
-저장: C:\project_git\BusanDX2026-BigData\공공데이터\가공데이터\04_모델\features_v3_gemini.parquet ((81224, 62))
+저장: 공공데이터/가공데이터/04_모델/features_v3_gemini.parquet ((81224, 62))
