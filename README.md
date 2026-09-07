@@ -29,10 +29,10 @@
 
 ```
 BusanDX2026-BigData/
-├─ scripts/                    실행 코드 45개 (실행 스크립트 44 + 공용 모듈 1)
-│  ├─ 수집/       D1~D2        원천 데이터 수집·보존
-│  ├─ 전처리/     S1~S12       좌표통일 → 격자화 → 레이어 결합
-│  ├─ 모델링/     M1~M12, MS1~MS5   피처 적층 → 학습 → MCDA
+├─ scripts/                    실행 코드 42개 (실행 스크립트 41 + 공용 모듈 1)
+│  ├─ 수집/       D1           원천 데이터 수집
+│  ├─ 전처리/     S1~S12       좌표통일 → 격자화 → 레이어 결합 (S7 제외 — archive)
+│  ├─ 모델링/     M1~M12, MS1·MS3·MS5   피처 적층 → 학습 → MCDA
 │  └─ 산출/       V1~V6        지도·차트·표·PDF·제출보조
 │
 ├─ 공공데이터/
@@ -53,13 +53,17 @@ BusanDX2026-BigData/
 │  ├─ 붙임4_데이터웨이브_활용내역.md
 │  └─ 서식/                    대회 작성 서식 원본
 │
-├─ archive/                    폐기 실험 보존 (gemini_experiments, ms4_panel)
+├─ archive/                    폐기·미채택 보존 (각 폴더에 사유 README)
+│  ├─ gemini_experiments/      제미나이 시나리오 실험 (비단조 버그)
+│  ├─ ms4_panel/               격자×사건 패널 (분리 AUC 0.447)
+│  ├─ ms2_scenario_v1/         활성화강우 v1 (MS3가 대체)
+│  └─ aihub_branch/            AI-Hub 갈래 (관측지점 15곳뿐)
 └─ secrets/                    API 키 (gitignore — 절대 커밋 금지)
 ```
 
 ### ⚠ 디렉터리를 더 깊게 만들지 말 것
 
-실행 스크립트 **44개 전부**가 `ROOT = Path(__file__).resolve().parents[2]` 로 루트를 찾는다
+실행 스크립트 **41개 전부**가 `ROOT = Path(__file__).resolve().parents[2]` 로 루트를 찾는다
 (`_hydro.py` 만 예외 — 경로를 쓰지 않는 순수 모듈이다).
 `scripts/<카테고리>/<파일>.py` 2단 깊이를 하드코딩으로 가정한 것이라,
 한 단계라도 깊어지면 ROOT 가 `scripts/` 를 가리켜 **조용히** 엉뚱한 경로를 참조한다.
@@ -151,7 +155,7 @@ python scripts/모델링/MS3_활성화강우_관측회귀.py
 python scripts/산출/V1_지도.py ... V5_PDF_시각자료집.py
 ```
 
-`M2 M4 M7 M10 M11 M11b M12 MS2 MS5` 는 순서 무관 단독 실행 (하류 산출물을 건드리지 않음).
+`M2 M4 M7 M10 M11 M11b M12 MS5` 는 순서 무관 단독 실행 (하류 산출물을 건드리지 않음).
 
 **환경**: Python 3.13 · pandas · GeoPandas · rasterio · XGBoost 3.4 · SHAP · scikit-learn · matplotlib
 **좌표계**: EPSG:5186 전 과정 통일

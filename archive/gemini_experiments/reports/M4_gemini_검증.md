@@ -50,4 +50,4 @@
 
 ## 5. [V3] 확률 보정 및 백분위 점수 산출
 - Brier Score: 0.0945
-- 산출: C:\project_git\BusanDX2026-BigData\공공데이터\가공데이터\04_모델\hazard_score_gemini.parquet 저장 완료
+- 산출: 공공데이터/가공데이터/04_모델/hazard_score_gemini.parquet 저장 완료
