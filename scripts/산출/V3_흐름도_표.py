@@ -119,10 +119,15 @@ for p in [0.01, 0.05, 0.10, 0.20, 0.30]:
     mh, mp = tm(d.hazard_oof.values, p), tm(d.priority.values, p)
     rows.append([f"{p:.0%}", f"{int(len(d)*p):,}", f"{int(len(d)*p)*0.01:.0f} km²",
                  f"{y[mh].sum()/tot:.1%}", f"{y[mh].mean():.1%}", f"{(y[mh].sum()/tot)/p:.1f}배",
+                 f"{y[mp].sum()/tot:.1%}", f"{y[mp].mean():.1%}",
                  f"{pop[mp & (y==1)].sum()/par:.1%}", f"{pop[mp].sum():,.0f}명"])
-save(pd.DataFrame(rows, columns=["지정 규모", "격자수", "면적", "침수흔적 포착(M9)", "정밀도(M9)",
-                                 "리프트(M9)", "위험인구 포착(M5)", "총 커버인구(M5)"]),
-     "T02_성능요약", "지정 규모별 성능 요약")
+# ⚠ M9(hazard_oof)와 M5(priority)는 서로 다른 순위다. 같은 '상위 10%'라도 수치가 다르므로
+#   열 이름에 기준을 반드시 표기한다 (보고서에서 두 열을 한 줄로 합치면 안 됨).
+save(pd.DataFrame(rows, columns=["지정 규모", "격자수", "면적",
+                                 "침수흔적 포착(M9)", "정밀도(M9)", "리프트(M9)",
+                                 "침수흔적 포착(M5)", "정밀도(M5)",
+                                 "위험인구 포착(M5)", "총 커버인구(M5)"]),
+     "T02_성능요약", "지정 규모별 성능 요약 — M9=물리 OOF 순위, M5=최종 MCDA 순위 (서로 다른 순위)")
 
 # T03 검증
 save(pd.DataFrame([
