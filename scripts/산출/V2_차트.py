@@ -4,6 +4,7 @@ import sys, io, json, warnings
 from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
 warnings.filterwarnings("ignore")
+import json
 import numpy as np, pandas as pd
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -107,8 +108,14 @@ fig.savefig(OUT / "F07_기준선비교.png", bbox_inches="tight", dpi=300); plt.
 print("F07 저장")
 
 # ── F08. 사건 홀드아웃 ────────────────────────────────────────
-ho = [("2011-07-27", 40.9, 48.2), ("2020 대형호우\n3h 114mm", 16.8, 68.0),
-      ("2014-08-25\n3h 145mm 극한", 3.6, 33.8)]
+# 수치는 M9 가 내보낸 M9_검증.json 에서 읽는다 — 하드코딩 금지 (이슈 #43)
+_V8 = json.load(open(GG / "04_모델" / "M9_검증.json", encoding="utf-8"))
+_H8 = {r["event"]: r for r in _V8["holdouts"]}
+def _hh(k, lbl):
+    r = _H8[k]; return (lbl, r["lift"], r["top10"] * 100)
+ho = [_hh("2011-07-27", "2011-07-27"),
+      _hh("2020 대형호우", "2020 대형호우\n3h 114mm"),
+      _hh("2014-08-25", "2014-08-25\n3h 145mm 극한")]
 fig, ax = plt.subplots(figsize=(7.4, 4.3))
 ax.bar([h[0] for h in ho], [h[1] for h in ho], color=[TEAL, TEAL, WARM], width=.55)
 for i, h in enumerate(ho):

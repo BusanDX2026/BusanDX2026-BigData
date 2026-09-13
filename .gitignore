@@ -145,3 +145,9 @@ desktop.ini
 
 # 로컬 전용 — 개인 학습 노트·초안. 저장소에 올리지 않는다.
 문서/_로컬/
+
+# ── 외부 도구(GPT 등) 작업 산물 — 추적하지 않는다 (2026-09-13) ──
+output/
+tmp/
+tmp_*.py
+restore_report_reference.py

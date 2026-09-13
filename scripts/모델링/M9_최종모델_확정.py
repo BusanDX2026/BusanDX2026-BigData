@@ -98,19 +98,56 @@ for nm, feats in STAGES:
 P(f"\n- 기준선 대비: MCDA 동일가중 0.0480 → **{average_precision_score(y,oof)/0.0480:.1f}배**, "
   f"행정 재해위험지구 0.0377 → **{average_precision_score(y,oof)/0.0377:.1f}배**")
 
-P("\n## 3. [V1] 2014년 사건 일반화 (독립 검증)")
-is14 = ((df.trace_flag == 1) & (df.trace_last_year == 2014)).values
-y_no14 = np.where(is14, 0, y)
-spw2 = (y_no14 == 0).sum() / max(y_no14.sum(), 1)
-o14 = oof_of(X, y_no14, list(GroupKFold(n_splits=5).split(X, y_no14, groups)), spw2)
-mask = is14 | (y == 0)
-ap14 = average_precision_score(y[mask], o14[mask]); base14 = y[mask].mean()
-k10 = int(mask.sum() * .10)
-s14 = o14[mask] + tie[mask] * max(np.ptp(o14[mask]), 1e-9) * 1e-9
-t14 = y[mask][np.argpartition(-s14, k10 - 1)[:k10]].sum() / max(y[mask].sum(), 1)
-P(f"- 2014 침수 {int(is14.sum()):,}건을 학습에서 완전 배제 후 예측")
-P(f"- PR-AUC {ap14:.4f} (양성률 {base14:.4f}) → **리프트 {ap14/base14:.1f}배** | Top10% {t14:.1%}")
-P(f"- 이전(9피처) 리프트 2.6배 → **{ap14/base14:.1f}배**")
+P("\n## 3. [V1] 사건 일반화 (라벨 민감도)")
+# ⚠ 이것은 '해당 격자를 학습에서 제거'하는 홀드아웃이 아니다. 격자는 학습셋에 남기고
+#   라벨만 1→0 으로 바꾼 뒤(y0), 그 격자를 다시 양성으로 놓고 평가한다.
+#   보고서·표에 "학습 제외"라고 쓰면 안 된다 (이슈 #43).
+# ⚠ 이 수치는 V2·V3·V5 가 읽어 쓴다. 산출 스크립트에 하드코딩하지 말 것
+#   → 아래에서 04_모델/M9_검증.json 으로 내보낸다.
+HOLDOUTS = []
+for _yr, _nm in [(2014, "2014-08-25"), (2020, "2020 대형호우"), (2011, "2011-07-27")]:
+    _h = ((df.trace_flag == 1) & (df.trace_last_year == _yr)).values
+    if _h.sum() == 0:
+        continue
+    _y0 = np.where(_h, 0, y)
+    _spw = (_y0 == 0).sum() / max(_y0.sum(), 1)
+    _o = oof_of(X, _y0, list(GroupKFold(n_splits=5).split(X, _y0, groups)), _spw)
+    _m = _h | (y == 0)
+    _ap = average_precision_score(y[_m], _o[_m]); _b = y[_m].mean()
+    _k = int(_m.sum() * .10)
+    _s = _o[_m] + tie[_m] * max(np.ptp(_o[_m]), 1e-9) * 1e-9
+    _t = y[_m][np.argpartition(-_s, _k - 1)[:_k]].sum() / max(y[_m].sum(), 1)
+    HOLDOUTS.append(dict(event=_nm, n=int(_h.sum()), ap=float(_ap), base=float(_b),
+                         lift=float(_ap / _b), top10=float(_t)))
+P("| 사건 | 해당 격자 | AP | 양성률 | 리프트 | Top10% 포착 |")
+P("|---|--:|--:|--:|--:|--:|")
+for _r in HOLDOUTS:
+    P(f"| {_r['event']} | {_r['n']:,} | {_r['ap']:.4f} | {_r['base']:.4f} | "
+      f"**{_r['lift']:.1f}배** | {_r['top10']:.1%} |")
+P("\n※ 해당 격자를 제거한 것이 아니라 **라벨을 1→0 으로 바꾼 민감도 분석**이다.")
+
+P("\n## 3-1. 행정 재해위험지구 대비 (동일 격자 수 · OOF 기준)")
+HAZD = []
+_bl = pd.read_parquet(GG / "03_마스터" / "baseline_grid.parquet")
+_d = df[["grid_id"]].merge(_bl, on="grid_id", how="left")
+for _c in ["hazdist_flag", "hazdist_flood", "hazdist_flood_active"]:
+    if _c not in _d.columns:
+        continue
+    _mm = _d[_c].fillna(0).astype(int).values == 1
+    _K = int(_mm.sum())
+    if _K == 0:
+        continue
+    _base = float(y[_mm].mean())
+    _top = float(y[order[:_K]].mean())
+    HAZD.append(dict(flag=_c, k=_K, base=_base, model=_top,
+                     ratio=(_top / _base) if _base else None))
+P("| 지정 기준 | 격자 | 지정구역 정밀도 | M9 상위 동수 격자 | 배수 |")
+P("|---|--:|--:|--:|--:|")
+for _r in HAZD:
+    P(f"| {_r['flag']} | {_r['k']:,} | {_r['base']:.1%} | {_r['model']:.1%} | **{_r['ratio']:.2f}배** |")
+_out = _d.hazdist_flag.fillna(0).astype(int).values == 1
+OUTSIDE = float(1 - y[_out].sum() / max(int(y.sum()), 1))
+P(f"\n- 침수흔적 격자 중 재해위험지구(hazdist_flag) **밖** 비율: **{OUTSIDE:.1%}**")
 
 P("\n## 4. [V2] 자치구 내 상대순위")
 rows = []
@@ -144,7 +181,10 @@ df[["grid_id", "sgg_cd", "sgg_nm", "adm_cd", "adm_nm", "hazard_raw", "hazard_oof
 json.dump({"features": FEATS, "params": cfg["params"], "scale_pos_weight": cfg["scale_pos_weight"],
            "pr_auc": float(average_precision_score(y, oof)), "n_features": len(FEATS)},
           open(MOD / "M9_최종설정.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-P(f"\n- 산출: hazard_score.parquet(갱신), M9_최종설정.json, M9_shap.csv")
+json.dump({"pr_auc": float(average_precision_score(y, oof)), "base_rate": float(y.mean()),
+           "holdouts": HOLDOUTS, "hazdist": HAZD, "outside_ratio": OUTSIDE},
+          open(MOD / "M9_검증.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+P(f"\n- 산출: hazard_score.parquet(갱신), M9_최종설정.json, M9_검증.json, M9_shap.csv")
 
 (REP / "M9_최종모델.md").write_text("\n".join(log), encoding="utf-8")
 print(f"\n==> 리포트: {REP/'M9_최종모델.md'}", flush=True)
