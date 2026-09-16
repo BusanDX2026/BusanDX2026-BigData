@@ -54,6 +54,15 @@ def scalebar(ax, km=5):
     ax.text(bx + km * 500, by + (y1 - y0) * 0.012, f"{km} km", ha="center", va="bottom",
             fontsize=8, color="#111")
 
+# Copernicus DEM 라이선스는 출처 표시를 요구한다 (GLO-30 Public, 무료·공개).
+#   지형·수문 지표가 들어간 그림에는 아래 크레딧을 캡션 아래에 넣는다.
+CREDIT = ("자료: Copernicus WorldDEM-30 (C) DLR e.V. 2010-2014 and (C) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA · "
+          "행정안전부 침수흔적도·재해위험지구 · 환경부 홍수위험지도·토지피복 · "
+          "국토교통부 GIS건물통합정보 · 기상청 AWS/ASOS · 국가데이터처 SGIS · 부산광역시")
+
+def credit(fig, y=0.018):
+    fig.text(0.5, y, CREDIT, ha="center", fontsize=6.4, color="#8a9a97")
+
 # ─────────────────────────────────────────────────────────
 # F03. M9 침수 감수성
 # ─────────────────────────────────────────────────────────
@@ -67,6 +76,7 @@ cb.set_label("위험도 백분위", fontsize=9); cb.ax.tick_params(labelsize=8)
 scalebar(ax)
 fig.text(0.5, 0.045, "PR-AUC 0.3059 (무작위 대비 8.6배) · 상위 10%에서 침수흔적의 59.1% 포착",
          ha="center", fontsize=8.5, color="#444")
+credit(fig)
 fig.savefig(OUT / "F03_위험도지도.png", bbox_inches="tight", dpi=300); plt.close(fig)
 print("F03 저장")
 
@@ -76,20 +86,25 @@ print("F03 저장")
 p = d.priority.rank(pct=True, ascending=False)
 grade = np.select([p <= .05, p <= .10, p <= .20, p <= .30], [4, 3, 2, 1], 0).astype(float)
 grade[d.priority.isna().values] = np.nan
-cmap = ListedColormap(["#eef2f1", "#cfe3e0", "#7bbdb5", "#2b8c83", "#0d5c58"])
+cmap = ListedColormap(["#e7ecef", "#c4d8e5", "#78a9c2", "#397a9f", "#123f64"])
 fig, ax = plt.subplots(figsize=(7.4, 8.2))
 draw(ax, canvas(grade), cmap, norm=BoundaryNorm([-.5, .5, 1.5, 2.5, 3.5, 4.5], 5))
 ax.set_title("선제대응 우선순위 (M5 MCDA)\n위험 50% + 노출 35% + 대응결핍 15%",
              fontsize=13, fontweight="bold", pad=12)
-ax.legend(handles=[Patch(facecolor="#0d5c58", label="1순위  상위 5%"),
-                   Patch(facecolor="#2b8c83", label="2순위  5~10%"),
-                   Patch(facecolor="#7bbdb5", label="3순위  10~20%"),
-                   Patch(facecolor="#cfe3e0", label="4순위  20~30%"),
-                   Patch(facecolor="#eef2f1", label="대상 외")],
-          loc="upper right", fontsize=8.5, frameon=True, framealpha=.95)
+# 지도 오른쪽 위는 기장군이 차지하므로 범례는 아래쪽 빈 여백에 둔다
+lg = ax.legend(handles=[Patch(facecolor="#123f64", label="1순위  상위 5%"),
+                        Patch(facecolor="#397a9f", label="2순위  5~10%"),
+                        Patch(facecolor="#78a9c2", label="3순위  10~20%"),
+                        Patch(facecolor="#c4d8e5", label="4순위  20~30%"),
+                        Patch(facecolor="#e7ecef", label="대상 외")],
+               loc="lower right", bbox_to_anchor=(0.995, 0.035),
+               fontsize=9.5, frameon=True, framealpha=.95,
+               borderpad=0.7, labelspacing=0.55, handlelength=1.6)
+lg.get_frame().set_edgecolor("#c8d4dc"); lg.get_frame().set_linewidth(0.8)
 scalebar(ax)
 fig.text(0.5, 0.045, "상위 10%(81 km²) 지정 시 침수위험 거주인구 27.9만명 중 90.4% 포괄",
          ha="center", fontsize=8.5, color="#444")
+credit(fig)
 fig.savefig(OUT / "F04_선제대응_우선순위지도.png", bbox_inches="tight", dpi=300); plt.close(fig)
 print("F04 저장")
 
@@ -110,6 +125,7 @@ ax.legend(handles=[Patch(facecolor="#c94f3a", label="T1 상시취약   3h 104mm 
 scalebar(ax)
 fig.text(0.5, 0.045, "관측: 상습 침수지 유발강우 3시간 102mm · 2014급 단발지 145mm",
          ha="center", fontsize=8.5, color="#444")
+credit(fig)
 fig.savefig(OUT / "F09_강우활성화등급지도.png", bbox_inches="tight", dpi=300); plt.close(fig)
 print("F09 저장")
 
@@ -143,6 +159,7 @@ ax2.annotate("기장군 886격자 = 전체의 31%\n(인구는 부산의 5%)",
              arrowprops=dict(arrowstyle="->", color="#a03c1e", lw=1.2))
 fig.suptitle("타깃은 '실제 침수'가 아니라 '기록된 침수'다", fontsize=13.5, fontweight="bold", y=.985)
 fig.tight_layout()
+credit(fig)
 fig.savefig(OUT / "F02_침수흔적_조사편향.png", bbox_inches="tight", dpi=300); plt.close(fig)
 print("F02 저장")
 print("→", OUT)
