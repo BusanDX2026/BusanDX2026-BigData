@@ -130,6 +130,12 @@ with PdfPages(PDF) as pdf:
     fig.text(.12, .15, "모든 수치는 산출물에서 직접 읽어 생성되며, 스크립트 재실행 시 자동 갱신된다.",
              fontsize=9, color=MUTE)
     fig.add_artist(plt.Line2D([.12, .88], [.11, .11], color="#d6e3e1", lw=1))
+    # Copernicus DEM 라이선스는 출처 표시를 요구한다 (GLO-30 Public)
+    fig.text(.12, .055,
+             "자료: Copernicus WorldDEM-30 (C) DLR e.V. 2010-2014 and (C) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA · "
+             "행정안전부 침수흔적도·재해위험지구 · 환경부 홍수위험지도·토지피복 · 국토교통부 GIS건물통합정보 · "
+             "기상청 AWS/ASOS · 국가데이터처 SGIS · 부산광역시 하수맨홀·지하차도·119 소방출동정보",
+             fontsize=6.6, color="#8a9a97")
     fig.text(.12, .085, "생성 2026-09-04 · scripts/산출/V1~V5", fontsize=8.5, color=MUTE)
     fig.text(.88, .085, "※ 분석 진행 중 — 수치는 변경될 수 있음", fontsize=8.5, color=WARM, ha="right")
     pdf.savefig(fig); plt.close(fig)
